@@ -2,15 +2,15 @@ import { OAuthProvider } from 'appwrite'
 import { account } from './appwrite'
 
 export function loginWithGitHub() {
-    account.createOAuth2Session(
-        OAuthProvider.Github,
-        `${window.location.origin}/dashboard`,
-        `${window.location.origin}/`
-    )
+    account.createOAuth2Session({
+        provider: OAuthProvider.Github,
+        success: `${window.location.origin}/dashboard`,
+        failure: `${window.location.origin}/`
+    })
 }
 
 export async function logout() {
-    await account.deleteSession('current')
+    await account.deleteSession({ sessionId: 'current' })
 }
 
 export async function getUser() {

@@ -10,11 +10,11 @@ export default function Home() {
   const { user } = useAuth()
 
   const handleLogin = () => {
-    account.createOAuth2Session(
-      OAuthProvider.Github,
-      `${window.location.origin}/dashboard`,
-      `${window.location.origin}/`
-    )
+    account.createOAuth2Session({
+      provider: OAuthProvider.Github,
+      success: `${window.location.origin}/dashboard`,
+      failure: `${window.location.origin}/`
+    })
   }
 
   const transition = {
