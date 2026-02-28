@@ -25,13 +25,13 @@ showresume lets developers publish their resume as a beautiful terminal experien
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │               Hono Server (Vercel Serverless)                │
-│         pdf-parse → Groq LLM → Markdown text response       │
+│       pdf-parse → Groq LLM → Zod Validation → JSON          │
 └───────────────────────┬─────────────────────────────────────┘
-                        │ Markdown string returned to frontend
+                        │ JSON schema returned to frontend
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Appwrite (BaaS)                           │
-│         GitHub OAuth Auth + Database (resume as markdown)   │
+│         GitHub OAuth Auth + Database (resume as JSON)       │
 └─────────────────────────────────────────────────────────────┘
                         │ fetched at runtime
                         ▼
@@ -45,17 +45,17 @@ showresume lets developers publish their resume as a beautiful terminal experien
 
 ## Tech Stack
 
-| Layer | Tech | Why |
-|---|---|---|
-| Frontend | React + Vite + TypeScript | Fast DX |
-| Styling | Tailwind CSS + shadcn/ui | Clean UI |
-| Markdown Preview | react-markdown | Renders AI output directly |
-| Auth | Appwrite GitHub OAuth | Free, no verification hassle |
-| Database | Appwrite Database | Stores resume markdown per user |
-| API Server | Hono on Vercel | Lightweight, free hosting |
-| PDF Parsing | pdf-parse (Node) | Server-side, PDF never stored |
-| AI | Groq (Llama 3.3 70B) | Free tier, fast inference |
-| CLI | Node.js + chalk + boxen | Terminal rendering |
+| Layer       | Tech                      | Why                                        |
+| ----------- | ------------------------- | ------------------------------------------ |
+| Frontend    | React + Vite + TypeScript | Fast DX                                    |
+| Styling     | Tailwind CSS + shadcn/ui  | Clean UI                                   |
+| Validation  | Zod                       | Prevents LLM hallucinations on the backend |
+| Auth        | Appwrite GitHub OAuth     | Free, no verification hassle               |
+| Database    | Appwrite Database         | Stores structured JSON resume              |
+| API Server  | Hono on Vercel            | Lightweight, free hosting                  |
+| PDF Parsing | pdf-parse (Node)          | Server-side, PDF never stored              |
+| AI          | Groq (Llama 3.1 8B)       | Free tier, fast JSON inference             |
+| CLI         | Node.js + chalk + boxen   | Terminal rendering                         |
 
 ---
 
@@ -68,7 +68,8 @@ showresume/
 │   │   ├── src/
 │   │   │   ├── components/
 │   │   │   │   ├── UploadZone.tsx
-│   │   │   │   ├── ResumePreview.tsx   # react-markdown renders the string
+│   │   │   │   ├── ResumePreview.tsx   # Visual representation of the JSON
+│   │   │   │   ├── ResumeEditor.tsx    # Live JSON editor
 │   │   │   │   └── NpxCommand.tsx
 │   │   │   ├── lib/
 │   │   │   │   ├── appwrite.ts
@@ -111,6 +112,7 @@ showresume/
 ## User Flow
 
 ### 1. Authentication
+
 - User visits the web app
 - Clicks "Sign in with GitHub"
 - Appwrite handles OAuth, creates a session
@@ -118,73 +120,76 @@ showresume/
 - Slug is checked for uniqueness in Appwrite DB
 
 ### 2. Resume Upload
+
 - User drags or selects their resume PDF
 - PDF is sent as `multipart/form-data` to the Hono server
 - **The PDF is never stored** — only the text is processed
-- Hono extracts text with `pdf-parse`, sends to Groq
-- Groq returns the resume as clean, well-formatted markdown
-- Markdown string is returned to the frontend
+- Hono extracts text with `pdf-parse`, truncates it for security, and sends it to Groq
+- Groq returns a fully structured JSON payload
+- Hono strictly validates the payload against a `zod` schema before returning to the client
 
-### 3. Preview & Confirm
-- The markdown is rendered in the browser using `react-markdown`
-- User sees their full resume as extracted — all sections, all details, nothing skipped
-- User hits "Publish" to confirm and save
+### 3. Preview & Edit
+
+- The structured JSON is rendered visually in the React frontend
+- Users can review the output
+- If the AI missed or formatted anything incorrectly, the user enters the **Resume Editor** and modifies the sections safely
 
 ### 4. Save to Appwrite
-- The markdown string is saved to Appwrite Database under the user's document
+
+- The pure JSON string is saved to Appwrite Database beneath the user's document
 - Slug stored as a unique indexed field
 - User sees their command: `npx showresume <slug>`
 
 ### 5. CLI Usage
+
 - Anyone runs `npx showresume <slug>`
-- CLI fetches the markdown string from Appwrite
-- Renders it in the terminal with chalk styling on top
+- CLI fetches the JSON string from Appwrite
+- CLI renders the JSON dynamically using custom section handlers and Chalk styling
 
 ---
 
-## What the AI Returns
+## The Resume JSON Schema
 
-Instead of structured JSON, Groq returns the resume as clean markdown. This keeps everything simple:
+Instead of relying on Markdown which requires LLM prompt-engineering and fragile string parsing, we use a rigid JSON format backed by **Zod**.
 
-- No schema to define or maintain
-- No JSON parsing, no edge cases
-- Preview is just `react-markdown` — zero extra logic
-- CLI renders the same text with terminal colors
-- Works for any resume format naturally
+- Structure is guaranteed
+- Safe handling of injected urls on the frontend
+- Much easier rendering for both the React interface and the CLI
 
-Example of what Groq returns:
+Example of the strict JSON format returned by the AI and saved to Appwrite:
 
-```markdown
-# Jane Doe
-**Senior Software Engineer** | San Francisco, CA
-jane@example.com | github.com/janedoe | janedoe.dev
-
-## Summary
-Experienced engineer with 8 years building distributed systems...
-
-## Experience
-
-### Acme Corp — Senior Engineer (2021–Present)
-- Led migration to microservices, reducing deploy time by 40%
-- Mentored a team of 5 junior engineers
-
-### StartupXYZ — Engineer (2018–2021)
-- Built the core API from scratch in Node.js and PostgreSQL
-
-## Skills
-TypeScript, React, Node.js, PostgreSQL, Docker, AWS
-
-## Education
-### UC Berkeley — B.S. Computer Science (2018)
+```json
+{
+  "name": "Jane Doe",
+  "title": "Senior Software Engineer",
+  "sections": [
+    {
+      "heading": "Contact",
+      "type": "contact",
+      "items": [{ "label": "github", "url": "https://github.com/janedoe" }]
+    },
+    {
+      "heading": "Experience",
+      "type": "entries",
+      "items": [
+        {
+          "title": "Senior Engineer",
+          "org": "Acme Corp",
+          "date": "2021-Present",
+          "bullets": ["Led migration to microservices"]
+        }
+      ]
+    }
+  ]
+}
 ```
-
-The AI is instructed to extract everything and let the structure reflect the actual resume — no fixed schema, no assumptions.
 
 ---
 
 ## Appwrite Setup
 
 ### Auth
+
 - Enable **GitHub OAuth** in Appwrite Console
 - Set callback URL to your frontend domain
 
@@ -192,16 +197,16 @@ The AI is instructed to extract everything and let the structure reflect the act
 
 **Collection: `resumes`**
 
-| Field | Type | Notes |
-|---|---|---|
-| `userId` | String | Appwrite user ID |
-| `slug` | String | Unique index |
-| `github` | String | GitHub username |
-| `resumeText` | String | Full markdown from AI |
-| `createdAt` | DateTime | Auto |
-| `updatedAt` | DateTime | Auto |
+| Field        | Type     | Notes                           |
+| ------------ | -------- | ------------------------------- |
+| `userId`     | String   | Appwrite user ID                |
+| `slug`       | String   | Unique index                    |
+| `resumeData` | String   | Stringified JSON schema payload |
+| `createdAt`  | DateTime | Auto                            |
+| `updatedAt`  | DateTime | Auto                            |
 
 ### Permissions
+
 - `resumes` collection: **anyone can read** (required for CLI), only authenticated users can write their own document
 
 ---
@@ -209,12 +214,14 @@ The AI is instructed to extract everything and let the structure reflect the act
 ## Environment Variables
 
 ### Hono Server (`apps/server/.env`)
+
 ```env
 GROQ_API_KEY=your_groq_key
 ALLOWED_ORIGIN=https://your-frontend-domain.com
 ```
 
 ### React Frontend (`apps/web/.env`)
+
 ```env
 VITE_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
 VITE_APPWRITE_PROJECT_ID=your_project_id
@@ -228,6 +235,7 @@ VITE_PARSE_API_URL=https://your-hono-server.vercel.app
 ## Security
 
 ### API Server
+
 - CORS restricted to known origin only in production
 - Rate limiting on `/api/parse` — 5 requests per IP per minute
 - File type validation (PDF only) and size cap (5MB)
@@ -235,13 +243,16 @@ VITE_PARSE_API_URL=https://your-hono-server.vercel.app
 - No file storage — PDF processed in memory and discarded
 
 ### Frontend
+
 - Appwrite sessions handled by Appwrite's secure cookie system, not localStorage
 - Appwrite client key scoped to read-only on `resumes` collection
 
 ### Appwrite
+
 - `resumes` publicly readable, writable only by document owner
 
 ### CLI
+
 - Read-only. No write access. No data collected from CLI users.
 
 ---

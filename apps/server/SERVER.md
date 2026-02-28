@@ -9,10 +9,10 @@ The API server for showresume. One job: accept a PDF, extract text, send to Groq
 ```
 POST /api/parse
   ← multipart/form-data with PDF file (field: "resume")
-  → { success: true, text: "<markdown string>" }
+  → { success: true, data: { name, title, sections: [...] } }
 ```
 
-One route. No database. No auth. No JSON schema. Just text in, markdown out.
+One route. Accepts a PDF, extracts text, asks Groq for structured JSON, validates it against a strict Zod schema, and returns the data.
 
 ---
 
@@ -56,6 +56,7 @@ bun install
 ```
 
 `.env`:
+
 ```env
 GROQ_API_KEY=your_groq_api_key
 ALLOWED_ORIGIN=https://your-frontend.com
@@ -75,63 +76,70 @@ bun dev   # runs at http://localhost:3000
 ### `POST /api/parse`
 
 **Request**
+
 ```
 Content-Type: multipart/form-data
 Body: { resume: <PDF file> }
 ```
 
 **Success** `200`
+
 ```json
 {
   "success": true,
-  "text": "# Jane Doe\n**Senior Engineer**\n\n## Experience\n..."
+  "data": {
+    "name": "Jane Doe",
+    "title": "Senior Engineer",
+    "sections": [...]
+  }
 }
 ```
 
 **Errors**
 
-| Status | Reason |
-|---|---|
-| `400` | No file or not a PDF |
-| `413` | File over 5MB |
-| `429` | Rate limit exceeded |
-| `500` | Parsing or Groq failure |
+| Status | Reason                  |
+| ------ | ----------------------- |
+| `400`  | No file or not a PDF    |
+| `413`  | File over 5MB           |
+| `429`  | Rate limit exceeded     |
+| `500`  | Parsing or Groq failure |
 
 ---
 
 ## Implementation Details
 
 ### `src/lib/pdfParser.ts`
+
 Takes a Buffer, runs `pdf-parse`, returns raw text string. Throws on failure. The PDF never touches disk — buffer only.
 
 ### `src/lib/groq.ts`
-Takes raw resume text, calls Groq with this prompt:
+
+Takes raw resume text, slices it to `20_000` chars to prevent prompt injection, and calls Groq to extract structured data.
 
 ```
-You are a resume formatter. Extract every single piece of information from the resume text below.
-Do not skip, omit, or summarize anything. Format it as clean, well-structured markdown.
-Use headers (##) for sections, bold for titles and companies, bullet points for responsibilities.
-Return only the markdown. No explanation, no preamble, nothing before or after.
-
-Resume text:
-<text>
+You are a resume data extractor. Your only job is to extract resume information from the text provided and return it as structured JSON.
+...
 ```
 
-Returns the raw string from the AI response. No parsing needed — it's just text.
+It expects a structured JSON object matching our `ResumeSchema`. Before returning, the raw JSON string is verified and strictly validated using **Zod**. If the AI hallucinates bad data, the validation fails and a 500 is safely returned.
 
 ### `src/routes/parse.ts`
+
 - Reads file from multipart body
 - Validates: file exists, is PDF, under 5MB
 - Calls pdfParser → groq
-- Returns `{ success: true, text: markdownString }`
+- Truncates input to 20K characters, validates structure via Zod
+- Returns `{ success: true, data: json }`
 - On error: logs internally, returns generic `{ success: false, error: "..." }`
 
 ### `src/middleware/cors.ts`
+
 - Production: `ALLOWED_ORIGIN` env var only
 - Development: `http://localhost:5173`
 - Methods: `POST`, `OPTIONS`
 
 ### `src/middleware/rateLimit.ts`
+
 - `hono-rate-limiter`: 5 requests per IP per minute
 - Key: `x-forwarded-for` header (set by Vercel)
 - Exceed: `429 { success: false, error: "Too many requests. Try again in a minute." }`
@@ -141,24 +149,24 @@ Returns the raw string from the AI response. No parsing needed — it's just tex
 ## Vercel Config
 
 ### `vercel.json`
+
 ```json
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
-  ]
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
 }
 ```
 
 ### `api/index.ts`
+
 ```ts
-import app from '../src/index'
-import { handle } from 'hono/vercel'
+import app from "../src/index";
+import { handle } from "hono/vercel";
 
 export const config = {
-  api: { bodyParser: false }  // critical — do not remove
-}
+  api: { bodyParser: false }, // critical — do not remove
+};
 
-export default handle(app)
+export default handle(app);
 ```
 
 `bodyParser: false` is critical. If Vercel parses the body first, multipart handling breaks.
@@ -172,6 +180,7 @@ vercel deploy --prod
 ```
 
 Set in Vercel dashboard → Project Settings → Environment Variables:
+
 - `GROQ_API_KEY`
 - `ALLOWED_ORIGIN`
 - `NODE_ENV=production`
