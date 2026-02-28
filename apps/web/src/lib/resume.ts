@@ -34,7 +34,7 @@ export async function saveResume(
         databaseId: DB_ID,
         tableId: TABLE_ID,
         rowId: ID.unique(),
-        data: { userId, slug, resumeText },
+        data: { userId, slug, resumeData: resumeText },
         permissions: [
             Permission.read(Role.any()),
             Permission.update(Role.user(userId)),
@@ -43,11 +43,21 @@ export async function saveResume(
     })
 }
 
-export async function updateResume(rowId: string, resumeText: string) {
+export async function updateResume(rowId: string, resumeText: string, slug?: string) {
+    const data: Record<string, string> = { resumeData: resumeText }
+    if (slug !== undefined) data.slug = slug
     return tablesDB.updateRow({
         databaseId: DB_ID,
         tableId: TABLE_ID,
         rowId,
-        data: { resumeText },
+        data,
+    })
+}
+
+export async function deleteResume(rowId: string) {
+    return tablesDB.deleteRow({
+        databaseId: DB_ID,
+        tableId: TABLE_ID,
+        rowId,
     })
 }

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { extractTextFromPDF } from "../lib/pdfParser";
-import { convertResumeToMarkdown } from "../lib/groq";
+import { convertResumeToJSON } from "../lib/groq";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -40,9 +40,9 @@ parse.post("/api/parse", async (c) => {
         const buffer = Buffer.from(arrayBuffer);
 
         const rawText = await extractTextFromPDF(buffer);
-        const markdown = await convertResumeToMarkdown(rawText);
+        const json = await convertResumeToJSON(rawText);
 
-        return c.json({ success: true, text: markdown });
+        return c.json({ success: true, data: json });
     } catch (error) {
         console.error("Error processing resume:", error);
         return c.json({ success: false, error: "Failed to process resume. Please try again." }, 500);

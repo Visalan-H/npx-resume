@@ -29,7 +29,7 @@ export default function NavBar({ showLogout = false, showDashboard = false }: Pr
       }`}
     >
       <Link to="/" className="text-sm font-bold tracking-widest uppercase text-amber-500 hover:text-amber-400 transition-colors">
-        npx-resume
+        showresume
       </Link>
 
       <div className="flex items-center gap-3">

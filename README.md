@@ -1,16 +1,16 @@
-# npx-resume
+# showresume
 
 > Show your resume in the terminal with a single `npx` command.
 
 ```bash
-npx npx-resume yourname
+npx showresume yourname
 ```
 
 ---
 
 ## What is this?
 
-npx-resume lets developers publish their resume as a beautiful terminal experience. Upload your PDF, get a personalized `npx` command, share it anywhere — GitHub bio, LinkedIn, Twitter. Anyone who runs it sees your resume rendered with colors and clean formatting right in their terminal.
+showresume lets developers publish their resume as a beautiful terminal experience. Upload your PDF, get a personalized `npx` command, share it anywhere — GitHub bio, LinkedIn, Twitter. Anyone who runs it sees your resume rendered with colors and clean formatting right in their terminal.
 
 ---
 
@@ -37,7 +37,7 @@ npx-resume lets developers publish their resume as a beautiful terminal experien
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                  npm CLI Package                             │
-│     `npx npx-resume yourname` → fetches + renders resume    │
+│     `npx showresume yourname` → fetches + renders resume    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -62,7 +62,7 @@ npx-resume lets developers publish their resume as a beautiful terminal experien
 ## Project Structure
 
 ```
-npx-resume/
+showresume/
 ├── apps/
 │   ├── web/                  # React frontend (Vite)
 │   │   ├── src/
@@ -133,10 +133,10 @@ npx-resume/
 ### 4. Save to Appwrite
 - The markdown string is saved to Appwrite Database under the user's document
 - Slug stored as a unique indexed field
-- User sees their command: `npx npx-resume <slug>`
+- User sees their command: `npx showresume <slug>`
 
 ### 5. CLI Usage
-- Anyone runs `npx npx-resume <slug>`
+- Anyone runs `npx showresume <slug>`
 - CLI fetches the markdown string from Appwrite
 - Renders it in the terminal with chalk styling on top
 
@@ -249,8 +249,8 @@ VITE_PARSE_API_URL=https://your-hono-server.vercel.app
 ## Development
 
 ```bash
-git clone https://github.com/you/npx-resume
-cd npx-resume && bun install
+git clone https://github.com/you/showresume
+cd showresume && bun install
 
 # Frontend
 cd apps/web && bun dev
@@ -283,7 +283,7 @@ cd packages/cli && npm publish --access public
 
 - [ ] Custom slug on signup
 - [ ] Resume update flow (re-upload PDF)
-- [ ] Public profile page at `npx-resume.app/yourname`
+- [ ] Public profile page at `showresume.app/yourname`
 - [ ] View count per resume
 - [ ] Multiple CLI color themes
 - [ ] OpenRouter as Groq fallback

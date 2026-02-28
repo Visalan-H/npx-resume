@@ -98,7 +98,7 @@ export default function SlugInput({ isDark, value, onChange, currentRowId }: Pro
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-amber-500 text-sm">$</span>
           <span className={`text-sm whitespace-nowrap ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-            npx npx-resume
+            npx showresume
           </span>
         </div>
         <div className="flex items-center gap-2 flex-1 min-w-0">

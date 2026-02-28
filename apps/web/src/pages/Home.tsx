@@ -72,7 +72,7 @@ export default function Home() {
         >
           <span className="text-amber-500 font-bold text-sm sm:text-base mr-3">&gt;</span>
           <span className={`text-sm sm:text-base font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-            npx npx-resume yourname
+            npx showresume yourname
           </span>
           <span className="home-cursor ml-2 text-sm sm:text-base" aria-hidden="true">
             _
@@ -82,9 +82,10 @@ export default function Home() {
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          whileTap={{ scale: 0.98 }}
           transition={{ ...transition, delay: 0.7 }}
           onClick={handleLogin}
-          className={`mt-14 rounded-none border-2 px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-[0.15em] transition-all active:scale-[0.98] ${
+          className={`mt-14 rounded-none border-2 px-8 py-4 text-xs sm:text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-150 ${
             isDark
               ? 'border-zinc-800 bg-zinc-900 text-white hover:border-amber-500 hover:text-amber-500'
               : 'border-zinc-300 bg-white text-black hover:border-amber-500 hover:text-amber-600'

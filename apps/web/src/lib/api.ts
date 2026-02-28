@@ -16,5 +16,5 @@ export async function parseResume(file: File): Promise<string> {
         throw new Error(data.error || 'Failed to parse resume')
     }
 
-    return data.text
+    return data.data
 }

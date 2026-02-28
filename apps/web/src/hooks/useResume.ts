@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react'
 import { parseResume } from '../lib/api'
-import { getMyResume, saveResume, updateResume, isSlugAvailable } from '../lib/resume'
+import { getMyResume, saveResume, updateResume, deleteResume, isSlugAvailable } from '../lib/resume'
 
-export type DashboardState = 'loading' | 'empty' | 'processing' | 'preview' | 'published'
+export type DashboardState = 'loading' | 'empty' | 'processing' | 'preview' | 'editing' | 'published'
 
 interface ResumeData {
     rowId?: string
     slug: string
-    resumeText: string
+    resumeJSON: string
 }
 
 export function useResume(userId: string | undefined) {
@@ -24,7 +24,7 @@ export function useResume(userId: string | undefined) {
                 setResume({
                     rowId: existing.$id,
                     slug: existing.slug,
-                    resumeText: existing.resumeText,
+                    resumeJSON: existing.resumeData,
                 })
                 setState('published')
             } else {
@@ -43,7 +43,7 @@ export function useResume(userId: string | undefined) {
             setResume((prev) => ({
                 rowId: prev?.rowId,
                 slug: prev?.slug ?? '',
-                resumeText: text,
+                resumeJSON: text,
             }))
             setState('preview')
         } catch (err) {
@@ -53,13 +53,14 @@ export function useResume(userId: string | undefined) {
     }, [])
 
     const publish = useCallback(
-        async (slug: string) => {
+        async (slug: string, overrideJSON?: string) => {
             if (!userId || !resume) return
             setError(null)
             if (!slug.trim()) {
                 setError('Slug cannot be empty')
                 return
             }
+            const jsonToPublish = overrideJSON ?? resume.resumeJSON
             try {
                 // Pass rowId so we don't flag our own slug as taken
                 const available = await isSlugAvailable(slug, resume.rowId)
@@ -68,13 +69,13 @@ export function useResume(userId: string | undefined) {
                     return
                 }
                 if (resume.rowId) {
-                    // Updating existing resume
-                    await updateResume(resume.rowId, resume.resumeText)
-                    setResume({ rowId: resume.rowId, slug, resumeText: resume.resumeText })
+                    // Updating existing resume (include slug in update)
+                    await updateResume(resume.rowId, jsonToPublish, slug)
+                    setResume({ rowId: resume.rowId, slug, resumeJSON: jsonToPublish })
                 } else {
                     // Creating new resume
-                    const row = await saveResume(userId, slug, resume.resumeText)
-                    setResume({ rowId: row.$id, slug, resumeText: resume.resumeText })
+                    const row = await saveResume(userId, slug, jsonToPublish)
+                    setResume({ rowId: row.$id, slug, resumeJSON: jsonToPublish })
                 }
                 setState('published')
             } catch (err) {
@@ -86,10 +87,30 @@ export function useResume(userId: string | undefined) {
 
     const reset = useCallback(() => {
         // Keep rowId so updates work correctly
-        setResume((prev) => prev?.rowId ? { rowId: prev.rowId, slug: prev.slug, resumeText: '' } : null)
+        setResume((prev) => prev?.rowId ? { rowId: prev.rowId, slug: prev.slug, resumeJSON: '' } : null)
         setError(null)
         setState('empty')
     }, [])
 
-    return { state, resume, error, fetchExisting, uploadFile, publish, reset }
+    const startEditing = useCallback(() => {
+        setState('editing')
+    }, [])
+
+    const updateResumeJSON = useCallback((json: string) => {
+        setResume((prev) => prev ? { ...prev, resumeJSON: json } : null)
+    }, [])
+
+    const remove = useCallback(async () => {
+        if (!resume?.rowId) return
+        setError(null)
+        try {
+            await deleteResume(resume.rowId)
+            setResume(null)
+            setState('empty')
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Delete failed')
+        }
+    }, [resume?.rowId])
+
+    return { state, setState, resume, error, fetchExisting, uploadFile, publish, reset, startEditing, updateResumeJSON, remove }
 }

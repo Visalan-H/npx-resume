@@ -8,6 +8,7 @@ import TerminalWindow from '../components/TerminalWindow'
 import UploadZone from '../components/UploadZone'
 import ProcessingState from '../components/ProcessingState'
 import ResumePreview from '../components/ResumePreview'
+import ResumeEditor from '../components/ResumeEditor'
 import NpxCommand from '../components/NpxCommand'
 
 export default function Dashboard() {
@@ -30,6 +31,9 @@ export default function Dashboard() {
     uploadFile,
     publish,
     reset,
+    startEditing,
+    updateResumeJSON,
+    remove,
   } = useResume(user?.$id)
 
   // Redirect if not authenticated
@@ -76,7 +80,9 @@ export default function Dashboard() {
       : state === 'processing'
       ? 'processing...'
       : state === 'preview'
-      ? 'resume.md'
+      ? 'resume.json'
+      : state === 'editing'
+      ? 'edit resume'
       : 'published'
 
   return (
@@ -95,13 +101,26 @@ export default function Dashboard() {
             {state === 'preview' && resume && (
               <ResumePreview
                 isDark={isDark}
-                markdown={resume.resumeText}
+                resumeJSON={resume.resumeJSON}
                 slug={slug}
                 onSlugChange={setSlug}
-                onPublish={() => publish(slug)}
+                onEditAndPublish={startEditing}
+                onSkipToPublish={() => publish(slug)}
                 onReUpload={reset}
                 error={error}
                 currentRowId={resume.rowId}
+              />
+            )}
+
+            {state === 'editing' && resume && (
+              <ResumeEditor
+                isDark={isDark}
+                resumeJSON={resume.resumeJSON}
+                onSave={(json) => {
+                  updateResumeJSON(json)
+                  publish(slug, json)
+                }}
+                onSkip={() => publish(slug)}
               />
             )}
 
@@ -109,7 +128,9 @@ export default function Dashboard() {
               <NpxCommand
                 isDark={isDark}
                 slug={resume.slug}
-                onUpdate={reset}
+                onEditJSON={startEditing}
+                onReUpload={reset}
+                onDelete={remove}
               />
             )}
           </TerminalWindow>

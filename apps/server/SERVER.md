@@ -1,6 +1,6 @@
-# npx-resume — Hono Server
+# showresume — Hono Server
 
-The API server for npx-resume. One job: accept a PDF, extract text, send to Groq, return the resume as clean markdown. Deployed as a Vercel serverless function.
+The API server for showresume. One job: accept a PDF, extract text, send to Groq, return the resume as clean markdown. Deployed as a Vercel serverless function.
 
 ---
 
