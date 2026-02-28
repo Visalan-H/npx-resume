@@ -1,3 +1,4 @@
 .env
 prompts/
 node_modules/
+dist/
