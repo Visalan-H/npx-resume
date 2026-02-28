@@ -1,4 +1,5 @@
 import SlugInput from './SlugInput'
+import { sanitizeUrl } from '../lib/sanitizeUrl'
 
 // ── Types ──
 
@@ -32,23 +33,28 @@ function SectionHeading({ text, isDark }: { text: string; isDark: boolean }) {
 function ContactSection({ items, isDark }: { items: ContactItem[]; isDark: boolean }) {
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
-      {items.map((item, i) => (
-        <span key={i}>
-          <span className={`font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{item.label}</span>
-          {item.url ? (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-1.5 text-amber-500 hover:underline"
-            >
-              {item.url.replace(/^mailto:/, '')}
-            </a>
-          ) : item.value ? (
-            <span className={`ml-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{item.value}</span>
-          ) : null}
-        </span>
-      ))}
+      {items.map((item, i) => {
+        const safeUrl = sanitizeUrl(item.url)
+        return (
+          <span key={i}>
+            <span className={`font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{item.label}</span>
+            {safeUrl ? (
+              <a
+                href={safeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1.5 text-amber-500 hover:underline"
+              >
+                {item.url!.replace(/^mailto:/, '')}
+              </a>
+            ) : item.url ? (
+              <span className={`ml-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{item.url.replace(/^mailto:/, '')}</span>
+            ) : item.value ? (
+              <span className={`ml-1.5 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{item.value}</span>
+            ) : null}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -75,45 +81,52 @@ function TagsSection({ items, isDark }: { items: string[]; isDark: boolean }) {
 function EntriesSection({ items, isDark }: { items: EntryItem[]; isDark: boolean }) {
   return (
     <div className="space-y-4">
-      {items.map((entry, i) => (
-        <div key={i} className="space-y-1">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className={`text-sm font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-              {entry.title}
-            </span>
-            {entry.org && (
-              <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                at {entry.org}
+      {items.map((entry, i) => {
+        const safeUrl = sanitizeUrl(entry.url)
+        return (
+          <div key={i} className="space-y-1">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <span className={`text-sm font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                {entry.title}
               </span>
-            )}
-            {entry.date && (
-              <span className={`text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
-                ({entry.date})
+              {entry.org && (
+                <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  at {entry.org}
+                </span>
+              )}
+              {entry.date && (
+                <span className={`text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                  ({entry.date})
+                </span>
+              )}
+            </div>
+            {safeUrl ? (
+              <a
+                href={safeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-amber-500 hover:underline block"
+              >
+                {entry.url}
+              </a>
+            ) : entry.url ? (
+              <span className="text-xs text-amber-500/70 block">
+                {entry.url}
               </span>
+            ) : null}
+            {entry.bullets && entry.bullets.length > 0 && (
+              <ul className="space-y-0.5 pl-1 pt-1">
+                {entry.bullets.map((b, j) => (
+                  <li key={j} className={`text-xs flex gap-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    <span className="text-zinc-600 shrink-0">·</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-          {entry.url && (
-            <a
-              href={entry.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-amber-500 hover:underline block"
-            >
-              {entry.url}
-            </a>
-          )}
-          {entry.bullets && entry.bullets.length > 0 && (
-            <ul className="space-y-0.5 pl-1 pt-1">
-              {entry.bullets.map((b, j) => (
-                <li key={j} className={`text-xs flex gap-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                  <span className="text-zinc-600 shrink-0">·</span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

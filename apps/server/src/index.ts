@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { createCorsMiddleware } from "./middleware/cors";
-import { createRateLimiter } from "./middleware/rateLimit";
-import parse from "./routes/parse";
+import { createCorsMiddleware } from "./middleware/cors.js";
+import { createRateLimiter } from "./middleware/rateLimit.js";
+import parse from "./routes/parse.js";
 
 const app = new Hono();
 

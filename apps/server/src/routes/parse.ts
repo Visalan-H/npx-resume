@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { extractTextFromPDF } from "../lib/pdfParser";
-import { convertResumeToJSON } from "../lib/groq";
+import { extractTextFromPDF } from "../lib/pdfParser.js";
+import { convertResumeToJSON } from "../lib/groq.js";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
